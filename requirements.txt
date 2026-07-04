@@ -2,9 +2,9 @@ Flask==3.0.3
 requests==2.32.3
 
 numpy
-opencv-python
+opencv-python-headless
 Pillow
 torch>=1.7
 torchvision>=0.8.0
 tqdm
-huggingface-hub
+huggingface-hub==0.19.4
