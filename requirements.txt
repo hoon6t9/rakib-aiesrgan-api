@@ -8,3 +8,5 @@ torch>=1.7
 torchvision>=0.8.0
 tqdm
 huggingface-hub==0.19.4
+
+gunicorn
