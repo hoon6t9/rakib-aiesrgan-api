@@ -1,9 +1,8 @@
 import os
 import io
-import requests
 import torch
 from PIL import Image
-from flask import Flask, request, send_file, jsonify
+from flask import Flask, request, jsonify, send_file
 from RealESRGAN import RealESRGAN
 
 app = Flask(__name__)
@@ -16,7 +15,7 @@ model = RealESRGAN(device, scale=4)
 model.load_weights("weights/RealESRGAN_x4.pth", download=True)
 
 
-@app.route("/")
+@app.get("/")
 def home():
     return jsonify({
         "status": True,
@@ -24,28 +23,22 @@ def home():
     })
 
 
-@app.route("/api/upscale")
+@app.post("/api/upscale")
 def upscale():
-    key = request.args.get("apikey")
-    if key != API_KEY:
+    if request.form.get("apikey") != API_KEY:
         return jsonify({
             "status": False,
             "message": "Unauthorized"
         }), 401
 
-    url = request.args.get("url")
-
-    if not url:
+    if "image" not in request.files:
         return jsonify({
             "status": False,
-            "message": "Missing image url"
+            "message": "No image uploaded"
         }), 400
 
     try:
-        response = requests.get(url, timeout=30)
-        response.raise_for_status()
-
-        image = Image.open(io.BytesIO(response.content)).convert("RGB")
+        image = Image.open(request.files["image"]).convert("RGB")
 
         sr = model.predict(image)
 
@@ -53,7 +46,11 @@ def upscale():
         sr.save(output, format="PNG")
         output.seek(0)
 
-        return send_file(output, mimetype="image/png")
+        return send_file(
+            output,
+            mimetype="image/png",
+            download_name="upscaled.png"
+        )
 
     except Exception as e:
         return jsonify({
@@ -63,5 +60,7 @@ def upscale():
 
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 10000))
+    )
