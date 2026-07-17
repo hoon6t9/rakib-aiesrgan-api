@@ -48,6 +48,8 @@ def home():
 
 @app.post("/api/upscale")
 def upscale():
+    tmp = None
+
     try:
         print("========== NEW REQUEST ==========")
 
@@ -64,7 +66,6 @@ def upscale():
             }), 400
 
         file = request.files["image"]
-
         print("📷 File:", file.filename)
 
         tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
@@ -73,19 +74,49 @@ def upscale():
 
         print("✅ Saved:", tmp.name)
 
+        image = Image.open(tmp.name).convert("RGB")
+
+        # বড় ছবি হলে ছোট করো (RAM বাঁচানোর জন্য)
+        MAX_SIZE = 800
+        if max(image.size) > MAX_SIZE:
+            image.thumbnail((MAX_SIZE, MAX_SIZE), Image.Resampling.LANCZOS)
+
+        print("📐 Size:", image.size)
+        print("🚀 Starting ESRGAN...")
+
+        with torch.no_grad():
+            sr = model.predict(image)
+
+        print("✅ ESRGAN Finished")
+
+        output = io.BytesIO()
+        sr.save(output, format="PNG", optimize=True)
+        output.seek(0)
+
+        del sr
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+        if tmp and os.path.exists(tmp.name):
+            os.remove(tmp.name)
+
         return send_file(
-            tmp.name,
+            output,
             mimetype="image/png",
-            download_name="test.png"
+            download_name="upscaled.png"
         )
 
     except Exception:
         traceback.print_exc()
+
+        if tmp and os.path.exists(tmp.name):
+            os.remove(tmp.name)
+
         return jsonify({
             "status": False,
             "message": "Internal Server Error"
         }), 500
-
 
 if __name__ == "__main__":
     app.run(
