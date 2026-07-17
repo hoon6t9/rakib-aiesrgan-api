@@ -49,45 +49,39 @@ def home():
 
 @app.post("/api/upscale")
 def upscale():
-    print("========== NEW REQUEST ==========")
-    print("Form:", request.form)
-    print("Files:", request.files)
+    print("\n========== POST RECEIVED ==========")
 
-    if request.form.get("apikey") != API_KEY:
-        print("❌ Invalid API Key")
+    try:
+        if request.form.get("apikey") != API_KEY:
+            print("❌ Invalid API Key")
+            return jsonify({
+                "status": False,
+                "message": "Unauthorized"
+            }), 401
+
+        if "image" not in request.files:
+            print("❌ No image uploaded")
+            return jsonify({
+                "status": False,
+                "message": "No image uploaded"
+            }), 400
+
+        file = request.files["image"]
+
+        print("✅ File:", file.filename)
+
+        return send_file(
+            file.stream,
+            mimetype=file.mimetype or "image/png",
+            download_name="test.png"
+        )
+
+    except Exception:
+        traceback.print_exc()
         return jsonify({
             "status": False,
-            "message": "Unauthorized"
-        }), 401
-
-    if "image" not in request.files:
-        print("❌ No image uploaded")
-        return jsonify({
-            "status": False,
-            "message": "No image uploaded"
-        }), 400
-
-    file = request.files["image"]
-    print("📷", file.filename)
-
-    image = Image.open(file).convert("RGB")
-    print("📐", image.size)
-
-    print("🚀 Upscaling...")
-    sr = model.predict(image)
-    print("✅ Upscale finished")
-
-    output = io.BytesIO()
-    sr.save(output, format="PNG")
-    output.seek(0)
-
-    print("📤 Sending image")
-
-    return send_file(
-        output,
-        mimetype="image/png",
-        download_name="upscaled.png"
-    )
+            "message": "Internal Server Error"
+        }), 500
 
 
 if __name__ == "__main__":
