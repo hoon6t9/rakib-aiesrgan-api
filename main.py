@@ -52,6 +52,7 @@ def upscale():
     print("\n========== POST RECEIVED ==========")
 
     try:
+        # API Key Check
         if request.form.get("apikey") != API_KEY:
             print("❌ Invalid API Key")
             return jsonify({
@@ -59,6 +60,7 @@ def upscale():
                 "message": "Unauthorized"
             }), 401
 
+        # Image Check
         if "image" not in request.files:
             print("❌ No image uploaded")
             return jsonify({
@@ -68,8 +70,9 @@ def upscale():
 
         file = request.files["image"]
 
-        print("✅ File:", file.filename)
+        print(f"📷 File: {file.filename}")
 
+        # শুধু টেস্টের জন্য ইমেজটা ফেরত পাঠাবে
         return send_file(
             file.stream,
             mimetype=file.mimetype or "image/png",
@@ -77,7 +80,9 @@ def upscale():
         )
 
     except Exception:
+        print("\n========== ERROR ==========")
         traceback.print_exc()
+
         return jsonify({
             "status": False,
             "message": "Internal Server Error"
