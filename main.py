@@ -1,9 +1,11 @@
+import io
 import os
 import traceback
 import tempfile
 import torch
 from flask import Flask, request, jsonify, send_file
 from RealESRGAN import RealESRGAN
+from PIL import Image
 
 app = Flask(__name__)
 
