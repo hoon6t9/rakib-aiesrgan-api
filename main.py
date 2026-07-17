@@ -1,8 +1,7 @@
 import os
-import io
 import traceback
+import tempfile
 import torch
-from PIL import Image
 from flask import Flask, request, jsonify, send_file
 from RealESRGAN import RealESRGAN
 
@@ -31,7 +30,7 @@ def after_request(response):
 
 @app.errorhandler(Exception)
 def handle_error(e):
-    print("\n========== GLOBAL ERROR ==========")
+    print("\n========== ERROR ==========")
     traceback.print_exc()
     return jsonify({
         "status": False,
@@ -49,20 +48,16 @@ def home():
 
 @app.post("/api/upscale")
 def upscale():
-    print("\n========== POST RECEIVED ==========")
-
     try:
-        # API Key Check
+        print("========== NEW REQUEST ==========")
+
         if request.form.get("apikey") != API_KEY:
-            print("❌ Invalid API Key")
             return jsonify({
                 "status": False,
                 "message": "Unauthorized"
             }), 401
 
-        # Image Check
         if "image" not in request.files:
-            print("❌ No image uploaded")
             return jsonify({
                 "status": False,
                 "message": "No image uploaded"
@@ -70,19 +65,22 @@ def upscale():
 
         file = request.files["image"]
 
-        print(f"📷 File: {file.filename}")
+        print("📷 File:", file.filename)
 
-        # শুধু টেস্টের জন্য ইমেজটা ফেরত পাঠাবে
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".png")
+        file.save(tmp.name)
+        tmp.close()
+
+        print("✅ Saved:", tmp.name)
+
         return send_file(
-            file.stream,
-            mimetype=file.mimetype or "image/png",
+            tmp.name,
+            mimetype="image/png",
             download_name="test.png"
         )
 
     except Exception:
-        print("\n========== ERROR ==========")
         traceback.print_exc()
-
         return jsonify({
             "status": False,
             "message": "Internal Server Error"
